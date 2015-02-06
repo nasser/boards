@@ -1,11 +1,33 @@
 <html>
 <head>
+  <meta charset="utf8">
   <title></title>
   <style type="text/css">
+  body {
+    overflow: hidden;
+    margin: 0;
+  }
+  
+  #stats {
+    padding: 0.5em;
+    color: #ddd;
+    font-family: Menlo, monospace;
+    text-align: center;
+    position: fixed;
+    
+    left: 50%;
+    width: 400px;
+    margin-left: -200px;
+    
+    z-index: -10;
+    bottom: 0
+  }
+  
   svg {
     display: none;
     width: 100%;
     height: 100%;
+    cursor: crosshair;
   }
   
   svg.current {
@@ -23,51 +45,94 @@
   </style>
 </head>
 <body>
+    <div id="stats"> <span id="current-page">1</span>/<span id="total-pages">1</span> </div>
     <script type="text/javascript">
+      var tools = {
+        pen: function(s) {
+          var matrix = page() ? page().querySelector("g").transform.baseVal[0].matrix
+                              : { e:0, f:0 }
+          s.onmousedown = function(e) {
+            var newLine = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+            s.querySelector("g").appendChild(newLine);
+            
+            s.onmousemove = function(e) {
+              var p = s.createSVGPoint();
+              p.x = e.offsetX - matrix.e;
+              p.y = e.offsetY - matrix.f;
+              newLine.points.appendItem(p);
+            }
+          }
+          
+          s.onmouseup = function() { s.onmousemove = undefined; }
+        },
+        
+        pan: function(s) {
+          s.onmousedown = function(e) {
+            var transform = page().querySelector("g").transform.baseVal[0]
+            var lastEvent;
+            
+            s.onmousemove = function(e) {
+              if(!lastEvent)
+                lastEvent = e;
+              transform.setMatrix(transform.matrix.translate(
+                e.offsetX - lastEvent.offsetX,
+                e.offsetY - lastEvent.offsetY));
+              lastEvent = e;
+            }
+          }
+          
+          s.onmouseup = function() { s.onmousemove = undefined; }
+        }
+      }
+    
       function page() { return document.querySelector("svg.current") }
-      function lastPolyline() { return document.querySelector("svg.current polyline:last-child") }
+      function root() { return page().querySelector("g") }
+      function lastPolyline() { return root().querySelector("polyline:last-child") }
       function pressed(e, c) { return e.keyCode == c.charCodeAt(0) }
       
-      function newPage() {
+      function updateStats() {
+        document.querySelector("#current-page").innerHTML = Array.prototype.indexOf.call(document.querySelectorAll("svg"), page()) + 1;
+        document.querySelector("#total-pages").innerHTML = document.querySelectorAll("svg").length;
+      }
+      
+      function newPage(copy) {
         var firstPage = !!document.querySelector("svg.current");
         var newPage = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         
-        if(firstPage)
+        if(firstPage && copy)
           newPage.innerHTML = page().innerHTML;
+        
+        var newGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        newGroup.setAttribute("transform", "translate(0, 0)");
+        newPage.appendChild(newGroup);
         
         makeCurrent(newPage);
         document.body.appendChild(newPage);
+        
+        updateStats();
       }
       
       function makeCurrent(s) {
         var pages = document.querySelectorAll("svg");
         for (var i = pages.length - 1; i >= 0; i--) {
           pages[i].removeAttribute("class");
-          disablePen(pages[i]);
+          disableTool(pages[i]);
         }
         
-        enablePen(s);
+        enableTool(s, tools.pen);
         s.setAttribute("class", "current");
       }
       
-      function enablePen(s) {
-        s.onmousedown = function(e) {
-          var newLine = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-          // newLine.setAttribute("points", e.offsetX + "," + e.offsetY + " ");
-          s.appendChild(newLine);
-          
-          s.onmousemove = function(e) {
-            var p = s.createSVGPoint();
-            p.x = e.offsetX;
-            p.y = e.offsetY;
-            lastPolyline(s).points.appendItem(p);
-          }
-        }
-        
-        s.onmouseup = function() { s.onmousemove = undefined; }
+      function changeTool(s, t) {
+        disableTool(t);
+        enableTool(s, t);
       }
       
-      function disablePen(s) {
+      function enableTool(s, t) {
+        t(s);
+      }
+      
+      function disableTool(s) {
         s.onmousedown = undefined;
         s.onmousemove = undefined;
         s.onmouseup = undefined;
@@ -76,22 +141,28 @@
       function historyPrevious() {
         if(page().previousElementSibling)
           makeCurrent(page().previousElementSibling);
+        updateStats();
       }
       
       function historyNext() {
         if(page().nextElementSibling)
           makeCurrent(page().nextElementSibling);
+        updateStats();
       }
       
-      document.onkeypress = function(e) {
+      document.onkeydown = function(e) {
+        console.log(e); 
         // undo
-        if(pressed(e, "z")) { page().removeChild(lastPolyline()); }
+        if(pressed(e, "Z")) { root().removeChild(lastPolyline()); }
         
         // new page
-        if(pressed(e, "p")) { newPage(); }
+        if(pressed(e, "N")) { newPage(false); }
+        
+        if(pressed(e, "Q")) { changeTool(page(), tools.pen); }
+        if(pressed(e, "A")) { changeTool(page(), tools.pan); }
                 
-        if(pressed(e, "<")) { historyPrevious(); }
-        if(pressed(e, ">")) { historyNext(); }
+        if(e.keyCode == 37) { historyPrevious(); }
+        if(e.keyCode == 39) { historyNext(); }
       }
       
       newPage();
