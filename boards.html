@@ -1,7 +1,7 @@
 <html>
 <head>
   <meta charset="utf8">
-  <title></title>
+  <title>Boards</title>
   <style type="text/css">
   body {
     overflow: hidden;
@@ -156,7 +156,8 @@
         if(pressed(e, "Z")) { root().removeChild(lastPolyline()); }
         
         // new page
-        if(pressed(e, "N")) { newPage(false); }
+        if(pressed(e, "W")) { newPage(true); }
+        if(pressed(e, "S")) { newPage(false); }
         
         if(pressed(e, "Q")) { changeTool(page(), tools.pen); }
         if(pressed(e, "A")) { changeTool(page(), tools.pan); }
