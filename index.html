@@ -159,6 +159,13 @@
                '</svg>';
       }
       
+      function clearAllBoards() {
+        allPages().map(function(p) {
+          document.body.removeChild(p);
+        });
+        newPage();
+      }
+      
       document.onkeydown = function(e) {
         // undo
         if(pressed(e, "Z")) { root().removeChild(lastPolyline()); }
@@ -169,6 +176,7 @@
         
         if(pressed(e, "Q")) { changeTool(page(), tools.pen); }
         if(pressed(e, "A")) { changeTool(page(), tools.pan); }
+        if(pressed(e, "P")) { clearAllBoards(); }
                 
         if(e.keyCode == 37) { historyPrevious(); }
         if(e.keyCode == 39) { historyNext(); }
