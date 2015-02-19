@@ -43,10 +43,7 @@
     
   }
   </style>
-</head>
-<body>
-    <div id="stats"> <span id="current-page">1</span>/<span id="total-pages">1</span> </div>
-    <script type="text/javascript">
+  <script type="text/javascript">
       var tools = {
         pen: function(s) {
           var matrix = page() ? page().querySelector("g").transform.baseVal[0].matrix
@@ -139,19 +136,30 @@
       }
       
       function historyPrevious() {
-        if(page().previousElementSibling)
+        if(page().previousElementSibling && page().previousElementSibling.tagName == "svg")
           makeCurrent(page().previousElementSibling);
         updateStats();
       }
       
       function historyNext() {
-        if(page().nextElementSibling)
+        if(page().nextElementSibling && page().nextElementSibling.tagName == "svg")
           makeCurrent(page().nextElementSibling);
         updateStats();
       }
       
+      function allPages() {
+        return Array.prototype.slice.call(document.querySelectorAll("svg"));
+      }
+      
+      function toStandaloneSVG(s) {
+        // TODO dont hardcode style
+        return '<svg xmlns="http://www.w3.org/2000/svg">' + 
+               '<style> polyline {fill:none; stroke:black; stroke-width:5; stroke-linecap:round; stroke-linejoin:round; }</style>' +
+               s.innerHTML + 
+               '</svg>';
+      }
+      
       document.onkeydown = function(e) {
-        console.log(e); 
         // undo
         if(pressed(e, "Z")) { root().removeChild(lastPolyline()); }
         
@@ -166,7 +174,27 @@
         if(e.keyCode == 39) { historyNext(); }
       }
       
-      newPage();
+      window.onload = function() {
+        if(localStorage.boards) {
+          JSON.parse(localStorage.boards).map(function(b) {
+            var newBoard = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            newBoard.innerHTML = b;
+            document.body.appendChild(newBoard);
+          });
+          
+          makeCurrent(document.querySelector("svg"));
+          updateStats();
+        } else {
+          newPage();
+        }
+        
+        setInterval(function() {
+          localStorage.boards = JSON.stringify(allPages().map(function(p) { return p.innerHTML }));
+        }, 1000)
+      }
     </script>
+</head>
+<body>
+    <div id="stats"> <span id="current-page">1</span>/<span id="total-pages">1</span> </div>
 </body>
 </html>
