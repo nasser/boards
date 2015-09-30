@@ -8,7 +8,7 @@
     margin: 0;
   }
   
-  #stats {
+  #footer {
     padding: 0.5em;
     color: #ddd;
     font-family: Menlo, monospace;
@@ -43,15 +43,24 @@
     
   }
   </style>
+  <script src="prompt.js" type="text/javascript"></script>
+  <script src="github.js" type="text/javascript"></script>
   <script type="text/javascript">
+      var github = new Github({});
+      var loggedIn = false;
+  
       var tools = {
         pen: function(s) {
-          var matrix = page() ? page().querySelector("g").transform.baseVal[0].matrix
-                              : { e:0, f:0 }
           s.onmousedown = function(e) {
+            // compute current transform matrix
+            var matrix = page() ? page().querySelector("g").transform.baseVal[0].matrix
+                                : { e:0, f:0 }
+
+            // add new line to board
             var newLine = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
             s.querySelector("g").appendChild(newLine);
             
+            // add points to line on move using matrix offset
             s.onmousemove = function(e) {
               var p = s.createSVGPoint();
               p.x = e.offsetX - matrix.e;
@@ -60,25 +69,28 @@
             }
           }
           
-          s.onmouseup = function() { s.onmousemove = undefined; }
+          s.onmouseup = function() {
+            s.onmousemove = undefined;
+            pushGist();
+          }
         },
         
         pan: function(s) {
-          s.onmousedown = function(e) {
-            var transform = page().querySelector("g").transform.baseVal[0]
-            var lastEvent;
-            
-            s.onmousemove = function(e) {
-              if(!lastEvent)
-                lastEvent = e;
-              transform.setMatrix(transform.matrix.translate(
-                e.offsetX - lastEvent.offsetX,
-                e.offsetY - lastEvent.offsetY));
+          var transform = page().querySelector("g").transform.baseVal[0];
+          var lastEvent;
+          
+          // drag pen to pan
+          s.onmousemove = function(e) {
+            if(!lastEvent)
               lastEvent = e;
-            }
+            transform.setMatrix(transform.matrix.translate(
+              e.offsetX - lastEvent.offsetX,
+              e.offsetY - lastEvent.offsetY));
+            lastEvent = e;
           }
           
-          s.onmouseup = function() { s.onmousemove = undefined; }
+          // on release button, change back to pen
+          document.onkeyup = function(e) { console.log("pen release"); changeTool(page(), tools.pen); }
         }
       }
     
@@ -87,41 +99,29 @@
       function lastPolyline() { return root().querySelector("polyline:last-child") }
       function pressed(e, c) { return e.keyCode == c.charCodeAt(0) }
       
-      function updateStats() {
-        document.querySelector("#current-page").innerHTML = Array.prototype.indexOf.call(document.querySelectorAll("svg"), page()) + 1;
-        document.querySelector("#total-pages").innerHTML = document.querySelectorAll("svg").length;
-      }
-      
-      function newPage(copy) {
-        var firstPage = !!document.querySelector("svg.current");
-        var newPage = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      function newBoard(content) {
+        var newBoard = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        if(content) {
+          newBoard.innerHTML = content;
+          
+        } else {
+          var newGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+          newGroup.setAttribute("transform", "translate(0, 0)");
+          newBoard.appendChild(newGroup);
+          
+        }
         
-        if(firstPage && copy)
-          newPage.innerHTML = page().innerHTML;
-        
-        var newGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        newGroup.setAttribute("transform", "translate(0, 0)");
-        newPage.appendChild(newGroup);
-        
-        makeCurrent(newPage);
-        document.body.appendChild(newPage);
-        
-        updateStats();
+        makeCurrent(newBoard);
+        document.body.appendChild(newBoard);
       }
       
       function makeCurrent(s) {
-        var pages = document.querySelectorAll("svg");
-        for (var i = pages.length - 1; i >= 0; i--) {
-          pages[i].removeAttribute("class");
-          disableTool(pages[i]);
-        }
-        
         enableTool(s, tools.pen);
         s.setAttribute("class", "current");
       }
       
       function changeTool(s, t) {
-        disableTool(t);
+        disableTool(s);
         enableTool(s, t);
       }
       
@@ -133,22 +133,7 @@
         s.onmousedown = undefined;
         s.onmousemove = undefined;
         s.onmouseup = undefined;
-      }
-      
-      function historyPrevious() {
-        if(page().previousElementSibling && page().previousElementSibling.tagName == "svg")
-          makeCurrent(page().previousElementSibling);
-        updateStats();
-      }
-      
-      function historyNext() {
-        if(page().nextElementSibling && page().nextElementSibling.tagName == "svg")
-          makeCurrent(page().nextElementSibling);
-        updateStats();
-      }
-      
-      function allPages() {
-        return Array.prototype.slice.call(document.querySelectorAll("svg"));
+        document.onkeyup = undefined; // HACK
       }
       
       function toStandaloneSVG(s) {
@@ -159,50 +144,119 @@
                '</svg>';
       }
       
-      function clearAllBoards() {
-        allPages().map(function(p) {
-          document.body.removeChild(p);
+      function stripSVGTags(s) {
+        return s.replace('<svg xmlns="http://www.w3.org/2000/svg">', "")
+                .replace('<style> polyline {fill:none; stroke:black; stroke-width:5; stroke-linecap:round; stroke-linejoin:round; }</style>', "")
+                .replace('</svg>', "");
+      }
+      
+      function updateFooter (message) {
+        document.querySelector("#footer").innerHTML = message;
+      }
+      
+      function pushGist() {
+        if(loggedIn)
+          github.getGist(fragment()).update({
+            files: {
+              "board.svg": {
+                content: toStandaloneSVG(page())
+              }
+            }
+          }, function(e, g) {
+            updateFooter("saved to " + g.id);
+            
+          });
+      }
+      
+      function save() {
+        var oldKeyDown = document.onkeydown;
+        document.onkeydown = undefined;
+        document.onkeyup = undefined;
+        
+        textPrompt("username", function(username) {
+          passwordPrompt("password", function(password) {
+            textPrompt("description", function(description) {
+              loggedIn = true;
+              
+              github = new Github({
+                username: username,
+                password: password,
+                auth: "basic"
+              });
+              
+              var f = fragment() ? "update" : "create";
+              
+              github.getGist(fragment() || null)[f]({
+                description: description,
+                public: true,
+                files: {
+                  "board.svg": {
+                    content: toStandaloneSVG(page())
+                  }
+                }
+              }, function(e, g) {
+                if(e) throw(e);
+                updateFooter("saved to " + g.id);
+                window.location.hash = g.id;
+              });
+              
+              document.onkeydown = oldKeyDown;
+            });
+          });
         });
-        newPage();
       }
       
       document.onkeydown = function(e) {
         // undo
-        if(pressed(e, "Z")) { root().removeChild(lastPolyline()); }
+        if(pressed(e, "Z")) { root().removeChild(lastPolyline()); pushGist(); }
         
-        // new page
-        if(pressed(e, "W")) { newPage(true); }
-        if(pressed(e, "S")) { newPage(false); }
+        // pan
+        if(pressed(e, "P")) { changeTool(page(), tools.pan); }
         
-        if(pressed(e, "Q")) { changeTool(page(), tools.pen); }
-        if(pressed(e, "A")) { changeTool(page(), tools.pan); }
-        if(pressed(e, "P")) { clearAllBoards(); }
-                
-        if(e.keyCode == 37) { historyPrevious(); }
-        if(e.keyCode == 39) { historyNext(); }
-      }
-      
-      window.onload = function() {
-        if(localStorage.boards) {
-          JSON.parse(localStorage.boards).map(function(b) {
-            var newBoard = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-            newBoard.innerHTML = b;
-            document.body.appendChild(newBoard);
-          });
-          
-          makeCurrent(document.querySelector("svg"));
-          updateStats();
-        } else {
-          newPage();
+        // pan
+        if(pressed(e, "N")) {
+          console.log("new");
+          document.body.removeChild(page());
+          newBoard();
         }
         
+        // save
+        if(pressed(e, "S")) { document.onkeyup = function() { setTimeout(save, 0) }; }
+      }
+      
+      function fragment() {
+        return window.location.hash.substr(1);
+      }
+      
+      window.onload = function() {        
+        if(!!fragment()) {
+          console.log("load from github");
+          github.getGist(fragment()).read(function(e, g) {
+            if(e) throw(e);
+            if(!g.files) throw("no files");
+            if(!g.files["board.svg"]) throw("no file named board.svg");
+            newBoard(stripSVGTags(g.files["board.svg"].content));
+            
+          });
+          
+        } else if(localStorage.boards) {
+          console.log("restore from localStorage");
+          newBoard(JSON.parse(localStorage.boards));
+          
+        } else {
+          console.log("new page");
+          newBoard();
+          
+        }
+        
+        // save to localStorage every second
         setInterval(function() {
-          localStorage.boards = JSON.stringify(allPages().map(function(p) { return p.innerHTML }));
+          localStorage.boards = JSON.stringify(page().innerHTML);
         }, 1000)
       }
     </script>
 </head>
 <body>
-    <div id="stats"> <span id="current-page">1</span>/<span id="total-pages">1</span> </div>
+    <div id="footer">be well</div>
 </body>
 </html>
