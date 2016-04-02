@@ -52,6 +52,7 @@
       var tools = {
         pen: function(s) {
           s.touchstart = s.onmousedown = function(e) {
+            e.preventDefault();
             // compute current transform matrix
             var matrix = page() ? page().querySelector("g").transform.baseVal[0].matrix
                                 : { e:0, f:0 }
@@ -62,6 +63,7 @@
             
             // add points to line on move using matrix offset
             s.touchmove = s.onmousemove = function(e) {
+              e.preventDefault();
               var p = s.createSVGPoint();
               p.x = e.offsetX - matrix.e;
               p.y = e.offsetY - matrix.f;
@@ -69,7 +71,8 @@
             }
           }
           
-          s.touchend = s.onmouseup = function() {
+          s.touchend = s.onmouseup = function(e) {
+            e.preventDefault();
             s.touchmove = s.onmousemove = undefined;
             pushGist();
           }
@@ -81,6 +84,7 @@
           
           // drag pen to pan
           s.touchmove = s.onmousemove = function(e) {
+            e.preventDefault();
             if(!lastEvent)
               lastEvent = e;
             transform.setMatrix(transform.matrix.translate(
