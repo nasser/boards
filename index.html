@@ -51,7 +51,7 @@
   
       var tools = {
         pen: function(s) {
-          s.onmousedown = function(e) {
+          s.touchstart = s.onmousedown = function(e) {
             // compute current transform matrix
             var matrix = page() ? page().querySelector("g").transform.baseVal[0].matrix
                                 : { e:0, f:0 }
@@ -61,7 +61,7 @@
             s.querySelector("g").appendChild(newLine);
             
             // add points to line on move using matrix offset
-            s.onmousemove = function(e) {
+            s.touchmove = s.onmousemove = function(e) {
               var p = s.createSVGPoint();
               p.x = e.offsetX - matrix.e;
               p.y = e.offsetY - matrix.f;
@@ -69,8 +69,8 @@
             }
           }
           
-          s.onmouseup = function() {
-            s.onmousemove = undefined;
+          s.touchend = s.onmouseup = function() {
+            s.touchmove = s.onmousemove = undefined;
             pushGist();
           }
         },
@@ -80,7 +80,7 @@
           var lastEvent;
           
           // drag pen to pan
-          s.onmousemove = function(e) {
+          s.touchmove = s.onmousemove = function(e) {
             if(!lastEvent)
               lastEvent = e;
             transform.setMatrix(transform.matrix.translate(
@@ -130,18 +130,31 @@
       }
       
       function disableTool(s) {
-        s.onmousedown = undefined;
-        s.onmousemove = undefined;
-        s.onmouseup = undefined;
+        s.touchstart = s.onmousedown = undefined;
+        s.touchmove = s.onmousemove = undefined;
+        s.touchend = s.onmouseup = undefined;
         document.onkeyup = undefined; // HACK
       }
       
       function toStandaloneSVG(s) {
         // TODO dont hardcode style
-        return '<svg xmlns="http://www.w3.org/2000/svg">' + 
-               '<style> polyline {fill:none; stroke:black; stroke-width:5; stroke-linecap:round; stroke-linejoin:round; }</style>' +
-               s.innerHTML + 
-               '</svg>';
+        var g = s.querySelector("g");
+        var transform = g.getAttribute("transform");
+        g.removeAttribute("transform");
+        
+        var border = 100;
+
+        var w = g.getBoundingClientRect().width + 2 * border;
+        var h = g.getBoundingClientRect().height + 2 * border;
+        var l = g.getBoundingClientRect().left - border;
+        var t = g.getBoundingClientRect().top - border;
+
+        var str = '<svg xmlns="http://www.w3.org/2000/svg" style="width:' + w + '; height:' + h + '" viewBox="' + l + ' ' + t + ' ' + w + ' ' + h + '">' + 
+                  '<style> polyline {fill:none; stroke:black; stroke-width:5; stroke-linecap:round; stroke-linejoin:round; }</style>' +
+                  s.innerHTML + 
+                  '</svg>';
+        g.setAttribute("transform", transform);
+        return str;
       }
       
       function stripSVGTags(s) {
@@ -166,6 +179,43 @@
             updateFooter("saved to " + g.id);
             
           });
+      }
+      
+      function download() {
+        var d = new Date().toLocaleString().
+                           replace(/\//g, "-").
+                           replace(/:/g, "-").
+                           replace(/,/g, "-").
+                           replace(/ /g, "");
+        var title = "Board " + d;
+        var header = "<html>\n" +
+                     "<head>\n" +
+                     "<title>" + title + "</title>\n" +
+                     '<style type="text/css"> body { margin: 0; overflow: scroll; } </style>\n' +
+                     // '<script type="text/javascript">\n' +
+                     // "  window.onload = function() {\n" + 
+                     // '    var g = document.querySelector("svg g");\n' + 
+                     // '    g.removeAttribute("transform");\n' +
+                     // "    var w = g.getBoundingClientRect().width;\n" + 
+                     // "    var h = g.getBoundingClientRect().height;\n" + 
+                     // "    var l = g.getBoundingClientRect().left;\n" + 
+                     // "    var t = g.getBoundingClientRect().top;\n" + 
+                     // "    g.viewportElement.style.width = w;\n" + 
+                     // "    g.viewportElement.style.height = h;\n" + 
+                     // '    g.viewportElement.setAttribute("viewBox", l + " " + t + " " + w + " " + h);\n' + 
+                     // "  }\n" +
+                     // "<\/script>\n" +
+                     "<\/head>\n" + 
+                     "<body>"
+                     
+        var footer = "</body>\n</html>"
+      
+        var blob = new Blob([header + toStandaloneSVG(page()) + footer], {type:"text/html"});
+        var a = document.createElement("a");
+        a.href = window.URL.createObjectURL(blob);
+        a.setAttribute("download", title + ".html");
+        a.click();
+        
       }
       
       function save() {
@@ -222,6 +272,9 @@
         
         // save
         if(pressed(e, "S")) { document.onkeyup = function() { setTimeout(save, 0) }; }
+        
+        // download
+        if(pressed(e, "D")) { download() }
       }
       
       function fragment() {
