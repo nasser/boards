@@ -65,8 +65,8 @@
             s.touchmove = s.onmousemove = function(e) {
               e.preventDefault();
               var p = s.createSVGPoint();
-              p.x = e.offsetX - matrix.e;
-              p.y = e.offsetY - matrix.f;
+              p.x = e.pageX - matrix.e;
+              p.y = e.pageY - matrix.f;
               newLine.points.appendItem(p);
             }
           }
@@ -88,8 +88,8 @@
             if(!lastEvent)
               lastEvent = e;
             transform.setMatrix(transform.matrix.translate(
-              e.offsetX - lastEvent.offsetX,
-              e.offsetY - lastEvent.offsetY));
+              e.pageX - lastEvent.pageX,
+              e.pageY - lastEvent.pageY));
             lastEvent = e;
           }
           
