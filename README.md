@@ -16,9 +16,12 @@ Best used with a tablet.
 * Press `N` to start a new blank board.
 * Press `S` to start streaming to a gist. You will be prompted for a username, password, and description.
 
+## Building
+
+Run `./build.sh`. Requires `npm` and [`electron-packager`](https://github.com/electron-userland/electron-packager). Only OSX at the moment.
+
 ## To do
 
-* Board viewer
 * Zooming
 
 ## License
