@@ -154,6 +154,7 @@
         var t = g.getBoundingClientRect().top - border;
 
         var str = '<svg xmlns="http://www.w3.org/2000/svg" style="width:' + w + '; height:' + h + '" viewBox="' + l + ' ' + t + ' ' + w + ' ' + h + '">' + 
+                  '<title>' + 'board' + '</title>' +
                   '<style> polyline {fill:none; stroke:black; stroke-width:5; stroke-linecap:round; stroke-linejoin:round; }</style>' +
                   s.innerHTML + 
                   '</svg>';
@@ -171,18 +172,33 @@
         document.querySelector("#footer").innerHTML = message;
       }
       
-      function pushGist() {
+      function pushGist(c) {
+        if(c === undefined) c = toStandaloneSVG(page());
         if(loggedIn)
           github.getGist(fragment()).update({
             files: {
               "board.svg": {
-                content: toStandaloneSVG(page())
+                content: c
               }
             }
           }, function(e, g) {
             updateFooter("saved to " + g.id);
             
           });
+      }
+      
+      function toStandaloneHTML(s, title) {
+        if(title == undefined) title = "Board";
+        var header = "<html>\n" +
+                     "<head>\n" +
+                     "<title>" + title + "</title>\n" +
+                     '<style type="text/css"> body { margin: 0; overflow: scroll; } </style>\n' +
+                     "<\/head>\n" + 
+                     "<body>";
+        var body = toStandaloneSVG(s);
+        var footer = "</body>\n</html>"
+        
+        return header + body + footer;
       }
       
       function download() {
@@ -192,35 +208,15 @@
                            replace(/,/g, "-").
                            replace(/ /g, "");
         var title = "Board " + d;
-        var header = "<html>\n" +
-                     "<head>\n" +
-                     "<title>" + title + "</title>\n" +
-                     '<style type="text/css"> body { margin: 0; overflow: scroll; } </style>\n' +
-                     // '<script type="text/javascript">\n' +
-                     // "  window.onload = function() {\n" + 
-                     // '    var g = document.querySelector("svg g");\n' + 
-                     // '    g.removeAttribute("transform");\n' +
-                     // "    var w = g.getBoundingClientRect().width;\n" + 
-                     // "    var h = g.getBoundingClientRect().height;\n" + 
-                     // "    var l = g.getBoundingClientRect().left;\n" + 
-                     // "    var t = g.getBoundingClientRect().top;\n" + 
-                     // "    g.viewportElement.style.width = w;\n" + 
-                     // "    g.viewportElement.style.height = h;\n" + 
-                     // '    g.viewportElement.setAttribute("viewBox", l + " " + t + " " + w + " " + h);\n' + 
-                     // "  }\n" +
-                     // "<\/script>\n" +
-                     "<\/head>\n" + 
-                     "<body>"
-                     
-        var footer = "</body>\n</html>"
-      
-        var blob = new Blob([header + toStandaloneSVG(page()) + footer], {type:"text/html"});
+        var content = toStandaloneHTML(page(), title);
+        var blob = new Blob([content], {type:"text/html"});
         var a = document.createElement("a");
         a.href = window.URL.createObjectURL(blob);
         a.setAttribute("download", title + ".html");
         a.click();
-        
       }
+      
+      const {shell} = require('electron')
       
       function save() {
         var oldKeyDown = document.onkeydown;
@@ -229,8 +225,9 @@
         
         textPrompt("username", function(username) {
           passwordPrompt("password", function(password) {
-            textPrompt("description", function(description) {
-              loggedIn = true;
+            textPrompt("title", function(title) {
+              // WIP disabling gist streaming
+              // loggedIn = true;
               
               github = new Github({
                 username: username,
@@ -238,20 +235,22 @@
                 auth: "basic"
               });
               
-              var f = fragment() ? "update" : "create";
+              // WIP disabling gist streaming
+              // var f = fragment() ? "update" : "create";
+              var f = "create";
+              var filename = title + ".svg";
+              var files = {};
+              files[filename] = {content:toStandaloneSVG(page())};
               
               github.getGist(fragment() || null)[f]({
-                description: description,
                 public: true,
-                files: {
-                  "board.svg": {
-                    content: toStandaloneSVG(page())
-                  }
-                }
+                description: title,
+                files: files
               }, function(e, g) {
-                if(e) throw(e);
-                updateFooter("saved to " + g.id);
-                window.location.hash = g.id;
+                  if(e) throw(e);
+                  // TODO use g.history array to generate link to specific version
+                  updateFooter("saved to " + g.id);
+                  shell.openExternal('https://cdn.rawgit.com/' + username + '/' + g.id + '/raw/' + filename);
               });
               
               document.onkeydown = oldKeyDown;
@@ -286,17 +285,19 @@
       }
       
       window.onload = function() {        
-        if(!!fragment()) {
-          console.log("load from github");
-          github.getGist(fragment()).read(function(e, g) {
-            if(e) throw(e);
-            if(!g.files) throw("no files");
-            if(!g.files["board.svg"]) throw("no file named board.svg");
-            newBoard(stripSVGTags(g.files["board.svg"].content));
-            
-          });
+        // WIP rethink loading from gists
+        // if(!!fragment()) {
+        //   console.log("load from github");
+        //   github.getGist(fragment()).read(function(e, g) {
+        //     if(e) throw(e);
+        //     if(!g.files) throw("no files");
+        //     if(!g.files["board.svg"]) throw("no file named board.svg");
+        //     newBoard(stripSVGTags(g.files["board.svg"].content));
+        //     
+        //   });
+        // }
           
-        } else if(localStorage.boards) {
+        if(localStorage.boards) {
           console.log("restore from localStorage");
           newBoard(JSON.parse(localStorage.boards));
           
@@ -311,9 +312,15 @@
           localStorage.boards = JSON.stringify(page().innerHTML);
         }, 1000)
       }
+      
+      window.onresize = function() {
+        // redraw hack
+        document.body.style.opacity = "0.99"
+        setTimeout(() => document.body.style.opacity = "1", 0)
+      }
     </script>
 </head>
 <body>
-    <div id="footer">be well</div>
+    <div id="footer">∞</div>
 </body>
 </html>

@@ -1,0 +1,19 @@
+{
+  "name": "boards",
+  "version": "0.0.1",
+  "description": "Infinite Whiteboards",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nasser/boards.git"
+  },
+  "author": "Ramsey Nasser",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/nasser/boards/issues"
+  },
+  "homepage": "https://github.com/nasser/boards#readme"
+}
