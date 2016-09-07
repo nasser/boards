@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/nasser/boards/issues"
   },
-  "homepage": "https://github.com/nasser/boards#readme"
+  "homepage": "https://github.com/nasser/boards#readme",
+  "devDependencies": {
+    "electron-prebuilt": "^1.2.0"
+  }
 }
