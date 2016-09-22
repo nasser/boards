@@ -100,7 +100,7 @@
     
       function page() { return document.querySelector("svg.current") }
       function root() { return page().querySelector("g") }
-      function lastPolyline() { return root().querySelector("polyline:last-child") }
+      function lastMark() { return root().querySelector("polyline:last-child,image:last-child") }
       function pressed(e, c) { return e.keyCode == c.charCodeAt(0) }
       
       function newBoard(content) {
@@ -261,7 +261,7 @@
       
       document.onkeydown = function(e) {
         // undo
-        if(pressed(e, "Z")) { root().removeChild(lastPolyline()); pushGist(); }
+        if(pressed(e, "Z")) { root().removeChild(lastMark()); pushGist(); }
         
         // pan
         if(pressed(e, "P")) { changeTool(page(), tools.pan); }
@@ -317,6 +317,83 @@
         // redraw hack
         document.body.style.opacity = "0.99"
         setTimeout(() => document.body.style.opacity = "1", 0)
+      }
+      
+      // pushes an image to the center of the view
+      function pushImage (data) {
+        var matrix = page() ? page().querySelector("g").transform.baseVal[0].matrix
+                            : { e:0, f:0 };
+        // hack to get image width
+        var newImage = document.createElement("img")
+        newImage.setAttribute("src", data)
+        var newSvgImage = document.createElementNS("http://www.w3.org/2000/svg", "image");
+        newSvgImage.setAttribute("href", data);
+        newSvgImage.setAttribute("x", window.innerWidth/2 - matrix.e - newImage.width/2);
+        newSvgImage.setAttribute("y", window.innerHeight/2 - matrix.f - newImage.height/2);
+        newSvgImage.setAttribute("width", newImage.width);
+        newSvgImage.setAttribute("height", newImage.height);
+        console.log(newImage.width + "x" + newImage.height);
+        page().querySelector("g").appendChild(newSvgImage);
+      }
+      
+      function getBlob(url, cb) {
+        var request = new XMLHttpRequest();
+        request.responseType = "blob";
+        request.onload = function() {
+          if(request.status === 200)
+            cb(this.response);
+          else
+            console.log(url + " failed " + request.status);
+        }
+        request.open('GET', url, true);
+        request.send(null);
+      }
+      
+      function readBlob (blob, cb) {
+        var reader = new FileReader();
+        reader.onload = function () {
+          cb(reader.result);
+        }
+        reader.readAsDataURL(blob);
+      }
+      
+      document.onpaste = function(event) {
+        var items = event.clipboardData.items;
+        for (var i = 0; i < items.length; i++) {
+          if(items[i].kind == "file") {
+            readBlob(items[i].getAsFile(), pushImage);
+          }
+        };
+      }
+
+      document.ondragover = function(event) {
+        event.stopPropagation();
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'copy';
+      }
+      
+      document.ondrop = function(event) {
+        event.stopPropagation();
+        event.preventDefault();
+        
+        if(event.dataTransfer.getData("text/html")) {
+          console.log(event.dataTransfer.getData("text/html"))
+          var temp = document.createElement('temp');
+          temp.innerHTML = event.dataTransfer.getData("text/html");
+          var remoteUrl = temp.querySelector("img").getAttribute("src");
+          getBlob(remoteUrl, function(blob) {
+            readBlob(blob, pushImage);
+          })
+        }
+        
+        // dragged files (e.g. from finder)
+        var files = event.dataTransfer.files;
+        for (var i = 0; i < files.length; i++) {
+          var blob = files[i];
+          if (blob.type.match(/image.*/)) {
+            readBlob(blob, pushImage);
+          }
+        }
       }
     </script>
 </head>
