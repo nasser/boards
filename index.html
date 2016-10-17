@@ -8,6 +8,19 @@
     margin: 0;
   }
   
+  #drag-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 22px;
+    -webkit-app-region: drag;
+  }
+  
+  #drag-bar.hidden {
+    display: none;
+  }
+  
   #footer {
     padding: 0.5em;
     color: #ddd;
@@ -53,6 +66,7 @@
         pen: function(s) {
           s.touchstart = s.onmousedown = function(e) {
             e.preventDefault();
+            hideDragBar();
             // compute current transform matrix
             var matrix = page() ? page().querySelector("g").transform.baseVal[0].matrix
                                 : { e:0, f:0 }
@@ -73,6 +87,7 @@
           
           s.touchend = s.onmouseup = function(e) {
             e.preventDefault();
+            showDragBar();
             s.touchmove = s.onmousemove = undefined;
             pushGist();
           }
@@ -313,10 +328,27 @@
         }, 1000)
       }
       
+      function hideDragBar() {
+        document.querySelector("#drag-bar").setAttribute("class", "hidden");
+      }
+      
+      function showDragBar() {
+        document.querySelector("#drag-bar").removeAttribute("class");
+      }
+      
+      var {BrowserWindow} = require('electron').remote;
+      
       window.onresize = function() {
         // redraw hack
         document.body.style.opacity = "0.99"
-        setTimeout(() => document.body.style.opacity = "1", 0)
+        setTimeout(() => {
+          document.body.style.opacity = "1";
+          if(BrowserWindow.getFocusedWindow().isFullScreen()) {
+            hideDragBar();
+          } else {
+            showDragBar();
+          }
+        }, 0)
       }
       
       // pushes an image to the center of the view
@@ -399,6 +431,7 @@
     <script type="text/javascript" src="menus.js"></script>
 </head>
 <body>
+    <div id="drag-bar"></div>
     <div id="footer">∞</div>
 </body>
 </html>
