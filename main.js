@@ -5,7 +5,7 @@ const path = require('path');
 let win;
 
 function createWindow() {
-  win = new BrowserWindow({width: 800, height: 600, titleBarStyle: 'hidden'});
+  win = new BrowserWindow({width: 800, height: 600, titleBarStyle: 'hidden-inset'});
   win.loadURL(`file:///${__dirname}/index.html`);
 }
 
