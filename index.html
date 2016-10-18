@@ -65,6 +65,8 @@
       var tools = {
         pen: function(s) {
           s.touchstart = s.onmousedown = function(e) {
+            console.log(e)
+            if(e.altKey || e.buttons != 1 || e.button != 0) return;
             e.preventDefault();
             hideDragBar();
             // compute current transform matrix
@@ -109,7 +111,10 @@
           }
           
           // on release button, change back to pen
-          document.onkeyup = function(e) { console.log("pen release"); changeTool(page(), tools.pen); }
+          s.onmouseup = function(e) {
+            showDragBar();
+            changeTool(page(), tools.pen);
+          }
         }
       }
     
@@ -274,12 +279,22 @@
         });
       }
       
+      document.onmousedown = function(e) {
+        if(e.button == 2) { changeTool(page(), tools.pan); }
+        
+        if(e.altKey) document.body.style = e.altKey;
+      }
+      
+      document.onmouseup = function(e) {
+        document.body.style = "";
+      }
+      
       document.onkeydown = function(e) {
         // undo
         if(pressed(e, "Z")) { root().removeChild(lastMark()); pushGist(); }
         
         // pan
-        if(pressed(e, "P")) { changeTool(page(), tools.pan); }
+        // if(pressed(e, "P")) { changeTool(page(), tools.pan); }
         
         // pan
         if(pressed(e, "N")) {
