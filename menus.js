@@ -1,4 +1,4 @@
-const {BrowserWindow, Menu, MenuItem} = require("electron").remote;
+const {Menu, MenuItem} = require("electron").remote;
 
 const template = [
   {
