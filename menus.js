@@ -2,35 +2,78 @@ const {Menu, MenuItem} = require("electron").remote;
 
 const template = [
   {
+    label:'Board',
+    submenu: [
+      {
+        label: 'New',
+        enabled: false
+      },
+      {
+        label: 'Clear',
+        accelerator: 'CmdOrCtrl+N',
+        click(item, focusedWindow) {
+          newBoard();
+        }
+      },
+      {
+        label: 'Save HTML...',
+        accelerator: 'CmdOrCtrl+S',
+        click(item, focusedWindow) {
+          download();
+        }
+      },
+      {
+        label: 'Save SVG...',
+        enabled: false
+      },
+      {
+        label: 'Upload Gist...',
+        accelerator: 'CmdOrCtrl+U',
+        click(item, focusedWindow) {
+          save();
+        }
+      }
+    ]
+  },
+  {
     label: 'Edit',
     submenu: [
     {
-      role: 'undo'
-    },
-    {
-      role: 'redo'
+      label: 'Undo',
+      accelerator: 'CmdOrCtrl+Z',
+      click() {
+        root().removeChild(lastMark());
+      }
     },
     {
       type: 'separator'
     },
     {
-      role: 'cut'
+      label: 'Copy Image',
+      enabled: false
     },
     {
-      role: 'copy'
+      label: 'Copy SVG',
+      enabled: false
     },
+    // {
+    //   role: 'cut'
+    // },
+    // {
+    //   role: 'copy'
+    // },
     {
       role: 'paste'
     },
-    {
-      role: 'pasteandmatchstyle'
-    },
-    {
-      role: 'delete'
-    },
-    {
-      role: 'selectall'
-    },
+    // {
+    //   role: 'pasteandmatchstyle'
+    // },
+    // {
+    //   role: 'delete'
+    // },
+    // {
+    //   role: 'selectall'
+    // },
     ]
   },
   {
@@ -46,14 +89,14 @@ const template = [
       {
         role: 'togglefullscreen'
       },
-      {
-        label: 'Toggle Developer Tools',
-        accelerator: process.platform === 'darwin' ? 'Alt+Command+I' : 'Ctrl+Shift+I',
-        click(item, focusedWindow) {
-          if (focusedWindow)
-            focusedWindow.webContents.toggleDevTools();
-        }
-      },
+      // {
+      //   label: 'Toggle Developer Tools',
+      //   accelerator: process.platform === 'darwin' ? 'Alt+Command+I' : 'Ctrl+Shift+I',
+      //   click(item, focusedWindow) {
+      //     if (focusedWindow)
+      //       focusedWindow.webContents.toggleDevTools();
+      //   }
+      // },
     ]
   },
   {
@@ -72,7 +115,11 @@ const template = [
     submenu: [
       {
         label: 'Learn More',
-        click() { require('electron').shell.openExternal('https://github.com/nasser/stopwork'); }
+        click() { require('electron').shell.openExternal('https://github.com/nasser/boards'); }
+      },
+      {
+        label: 'Open Introduction Board',
+        enabled: false
       },
     ]
   },

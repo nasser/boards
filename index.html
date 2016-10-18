@@ -124,6 +124,7 @@
       function pressed(e, c) { return e.keyCode == c.charCodeAt(0) }
       
       function newBoard(content) {
+        if(page()) document.body.removeChild(page());
         var newBoard = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         if(content) {
           newBoard.innerHTML = content;
@@ -291,23 +292,22 @@
       
       document.onkeydown = function(e) {
         // undo
-        if(pressed(e, "Z")) { root().removeChild(lastMark()); pushGist(); }
+        if(pressed(e, "Z")) { pushGist(); }
         
         // pan
         // if(pressed(e, "P")) { changeTool(page(), tools.pan); }
         
-        // pan
-        if(pressed(e, "N")) {
-          console.log("new");
-          document.body.removeChild(page());
-          newBoard();
-        }
+        // new
+        // if(pressed(e, "N")) {
+        //   console.log("new");
+        //   newBoard();
+        // }
         
         // save
-        if(pressed(e, "S")) { document.onkeyup = function() { setTimeout(save, 0) }; }
+        // if(pressed(e, "S")) { document.onkeyup = function() { setTimeout(save, 0) }; }
         
         // download
-        if(pressed(e, "D")) { download() }
+        // if(pressed(e, "D")) { download() }
       }
       
       function fragment() {
