@@ -289,26 +289,6 @@
         document.body.style = "";
       }
       
-      document.onkeydown = function(e) {
-        // undo
-        if(pressed(e, "Z")) { pushGist(); }
-        
-        // pan
-        // if(pressed(e, "P")) { changeTool(page(), tools.pan); }
-        
-        // new
-        // if(pressed(e, "N")) {
-        //   console.log("new");
-        //   newBoard();
-        // }
-        
-        // save
-        // if(pressed(e, "S")) { document.onkeyup = function() { setTimeout(save, 0) }; }
-        
-        // download
-        // if(pressed(e, "D")) { download() }
-      }
-      
       function fragment() {
         return window.location.hash.substr(1);
       }
