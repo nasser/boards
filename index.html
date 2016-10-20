@@ -64,8 +64,7 @@
   
       var tools = {
         pen: function(s) {
-          s.touchstart = s.onmousedown = function(e) {
-            if(e.altKey || e.buttons != 1 || e.button != 0) return;
+          function startDrawing (e) {
             e.preventDefault();
             hideDragBar();
             // compute current transform matrix
@@ -85,8 +84,18 @@
               newLine.points.appendItem(p);
             }
           }
+          document.onkeydown = function(e) {
+            if(e.charCode == 0 && e.shiftKey) {
+              startDrawing(e);
+            }
+          }
           
-          s.touchend = s.onmouseup = function(e) {
+          s.touchstart = s.onmousedown = function(e) {
+            if(e.altKey || e.buttons != 1 || e.button != 0) return;
+            startDrawing(e);
+          }
+          
+          document.onkeyup = s.touchend = s.onmouseup = function(e) {
             e.preventDefault();
             showDragBar();
             s.touchmove = s.onmousemove = undefined;
