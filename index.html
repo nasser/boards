@@ -65,7 +65,6 @@
       var tools = {
         pen: function(s) {
           s.touchstart = s.onmousedown = function(e) {
-            console.log(e)
             if(e.altKey || e.buttons != 1 || e.button != 0) return;
             e.preventDefault();
             hideDragBar();
