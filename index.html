@@ -441,6 +441,14 @@
           }
         }
       }
+      
+      document.onmousewheel = function(event) {
+        event.preventDefault();
+        var transform = page().querySelector("g").transform.baseVal[0];
+        transform.setMatrix(transform.matrix.translate(
+          -event.deltaX,
+          -event.deltaY));
+      }
     </script>
     <script type="text/javascript" src="menus.js"></script>
 </head>
