@@ -2,6 +2,8 @@
 
 Infinite whiteboards
 
+![](http://i.imgur.com/WSaE9LJ.gif)
+
 ## Status
 
 Not finished
